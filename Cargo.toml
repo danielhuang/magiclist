@@ -2,6 +2,8 @@
 name = "magiclist"
 version = "0.1.0"
 edition = "2021"
+description = "List with O(log n) random access, insertion, splitting, and merging"
+license = "GPL-3.0-only"
 
 [dependencies]
 
