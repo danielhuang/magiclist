@@ -1,0 +1,13 @@
+[package]
+name = "magiclist"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[profile.release]
+debug = true
+
+[dev-dependencies]
+rand = "0.8.5"
+rand_chacha = "0.3.1"
