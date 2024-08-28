@@ -10,9 +10,17 @@ pub(crate) const B: usize = 12;
 mod iter;
 mod node;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct MagicList<T> {
     root: Node<T>,
+}
+
+impl<T> Default for MagicList<T> {
+    fn default() -> Self {
+        Self {
+            root: Node::Leaf(vec![]),
+        }
+    }
 }
 
 impl<T> MagicList<T> {
