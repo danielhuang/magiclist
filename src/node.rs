@@ -164,7 +164,6 @@ impl<T> Node<T> {
                 let mut child_i = 0;
                 let mut total_before_child_i = 0;
                 let right = loop {
-                    dbg!(total_before_child_i, i);
                     if total_before_child_i == i {
                         let right = tree.children.split_off(child_i);
                         tree.total_len = i;

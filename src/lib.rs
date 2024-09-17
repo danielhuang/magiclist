@@ -10,9 +10,15 @@ pub(crate) const B: usize = 12;
 mod iter;
 mod node;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MagicList<T> {
     root: Node<T>,
+}
+
+impl<T: Debug> Debug for MagicList<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.iter()).finish()
+    }
 }
 
 impl<T> Default for MagicList<T> {
@@ -152,6 +158,26 @@ impl<T> IndexMut<usize> for MagicList<T> {
     }
 }
 
+impl<T: Eq> Eq for MagicList<T> {}
+
+impl<T: PartialEq> PartialEq for MagicList<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.iter().eq(other.iter())
+    }
+}
+
+impl<T: PartialOrd> PartialOrd for MagicList<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.iter().partial_cmp(other.iter())
+    }
+}
+
+impl<T: Ord> Ord for MagicList<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.iter().cmp(other.iter())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rand::prelude::SliceRandom;
@@ -248,5 +274,11 @@ mod tests {
 
             assert!(list.into_iter().eq(0..size));
         }
+    }
+
+    #[test]
+    fn debug() {
+        let list: MagicList<_> = (0..10).collect();
+        assert_eq!(format!("{list:?}"), "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]");
     }
 }
