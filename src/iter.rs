@@ -1,6 +1,6 @@
 use std::iter::FusedIterator;
 
-use crate::{container::NodeContainer, MagicList};
+use crate::{container::NodeContainer, node::Node, MagicList};
 
 impl<T, C: NodeContainer<T>> IntoIterator for MagicList<T, C> {
     type Item = T;
@@ -29,6 +29,26 @@ impl<T, C: NodeContainer<T>> Iterator for IntoIter<T, C> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.list.len(), Some(self.list.len()))
+    }
+
+    fn fold<B, F>(self, init: B, mut f: F) -> B
+    where
+        F: FnMut(B, T) -> B,
+    {
+        fn fold_owned<T, C: NodeContainer<T>, B, F>(node: Node<T, C>, init: B, f: &mut F) -> B
+        where
+            F: FnMut(B, T) -> B,
+        {
+            match node {
+                Node::Leaf(values) => values.into_iter().fold(init, f),
+                Node::Tree(tree) => tree
+                    .children
+                    .into_iter()
+                    .fold(init, |acc, node| fold_owned(node, acc, f)),
+            }
+        }
+
+        fold_owned(self.list.root, init, &mut f)
     }
 }
 
@@ -89,6 +109,26 @@ impl<'a, T, C: NodeContainer<T>> Iterator for Iter<'a, T, C> {
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.j - self.i, Some(self.j - self.i))
     }
+
+    fn fold<B, F>(self, init: B, mut f: F) -> B
+    where
+        F: FnMut(B, &'a T) -> B,
+    {
+        fn fold_ref<'a, T, C: NodeContainer<T>, B, F>(node: &'a Node<T, C>, init: B, f: &mut F) -> B
+        where
+            F: FnMut(B, &'a T) -> B,
+        {
+            match node {
+                Node::Leaf(values) => values.iter().fold(init, f),
+                Node::Tree(tree) => tree
+                    .children
+                    .iter()
+                    .fold(init, |acc, node| fold_ref(node, acc, f)),
+            }
+        }
+
+        fold_ref(&self.list.root, init, &mut f)
+    }
 }
 
 impl<'a, T, C: NodeContainer<T>> DoubleEndedIterator for Iter<'a, T, C> {
@@ -111,9 +151,9 @@ impl<'a, T, C: NodeContainer<T>> ExactSizeIterator for Iter<'a, T, C> {}
 impl<T, C: NodeContainer<T>> FromIterator<T> for MagicList<T, C> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut list = MagicList::default();
-        for x in iter {
+        iter.into_iter().for_each(|x| {
             list.push(x);
-        }
+        });
         list
     }
 }
@@ -134,5 +174,12 @@ mod tests {
         assert_eq!(iter.next_back(), Some(&97));
         assert!(iter.len() == 94);
         assert!(iter.copied().eq(3..97));
+    }
+
+    #[test]
+    fn test2() {
+        let list: MagicList<_> = (0..100).collect();
+        let list2: MagicList<_> = list.clone().into_iter().collect();
+        assert_eq!(list, list2);
     }
 }

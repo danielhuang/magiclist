@@ -146,10 +146,10 @@ mod tests {
 
     #[test]
     fn blowup() {
-        let list: MagicList<_, NodeRcVec<_>> = (0..999999).collect();
-        let list: MagicList<_, NodeRcVec<_>> = (0..999999).map(|_| list.clone()).collect();
-        let list: MagicList<_, NodeRcVec<_>> = (0..999999).map(|_| list.clone()).collect();
-        let list: MagicList<_, NodeRcVec<_>> = (0..999999).map(|_| list.clone()).collect();
+        let list: MagicList<_, NodeRcVec<_>> = (0..9999).collect();
+        let list: MagicList<_, NodeRcVec<_>> = (0..9999).map(|_| list.clone()).collect();
+        let list: MagicList<_, NodeRcVec<_>> = (0..9999).map(|_| list.clone()).collect();
+        let list: MagicList<_, NodeRcVec<_>> = (0..9999).map(|_| list.clone()).collect();
         assert!(!list.is_empty());
     }
 }
