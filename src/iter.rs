@@ -1,22 +1,22 @@
 use std::iter::FusedIterator;
 
-use crate::MagicList;
+use crate::{container::NodeContainer, MagicList};
 
-impl<T> IntoIterator for MagicList<T> {
+impl<T, C: NodeContainer<T>> IntoIterator for MagicList<T, C> {
     type Item = T;
 
-    type IntoIter = IntoIter<T>;
+    type IntoIter = IntoIter<T, C>;
 
     fn into_iter(self) -> Self::IntoIter {
         IntoIter { list: self }
     }
 }
 
-pub struct IntoIter<T> {
-    list: MagicList<T>,
+pub struct IntoIter<T, C: NodeContainer<T>> {
+    list: MagicList<T, C>,
 }
 
-impl<T> Iterator for IntoIter<T> {
+impl<T, C: NodeContainer<T>> Iterator for IntoIter<T, C> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -32,9 +32,9 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 
-impl<T> ExactSizeIterator for IntoIter<T> {}
+impl<T, C: NodeContainer<T>> ExactSizeIterator for IntoIter<T, C> {}
 
-impl<T> DoubleEndedIterator for IntoIter<T> {
+impl<T, C: NodeContainer<T>> DoubleEndedIterator for IntoIter<T, C> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.list.is_empty() {
             None
@@ -44,10 +44,10 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
     }
 }
 
-impl<T> FusedIterator for IntoIter<T> {}
+impl<T, C: NodeContainer<T>> FusedIterator for IntoIter<T, C> {}
 
-impl<T> MagicList<T> {
-    pub fn iter(&self) -> Iter<T> {
+impl<T, C: NodeContainer<T>> MagicList<T, C> {
+    pub fn iter(&self) -> Iter<T, C> {
         Iter {
             list: self,
             i: 0,
@@ -56,23 +56,23 @@ impl<T> MagicList<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a MagicList<T> {
+impl<'a, T, C: NodeContainer<T>> IntoIterator for &'a MagicList<T, C> {
     type Item = &'a T;
 
-    type IntoIter = Iter<'a, T>;
+    type IntoIter = Iter<'a, T, C>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-pub struct Iter<'a, T> {
-    list: &'a MagicList<T>,
+pub struct Iter<'a, T, C: NodeContainer<T>> {
+    list: &'a MagicList<T, C>,
     i: usize,
     j: usize,
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
+impl<'a, T, C: NodeContainer<T>> Iterator for Iter<'a, T, C> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -91,7 +91,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
+impl<'a, T, C: NodeContainer<T>> DoubleEndedIterator for Iter<'a, T, C> {
     fn next_back(&mut self) -> Option<Self::Item> {
         assert!(self.i <= self.j);
         if self.i == self.j {
@@ -104,11 +104,11 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for Iter<'a, T> {}
+impl<'a, T, C: NodeContainer<T>> FusedIterator for Iter<'a, T, C> {}
 
-impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
+impl<'a, T, C: NodeContainer<T>> ExactSizeIterator for Iter<'a, T, C> {}
 
-impl<T> FromIterator<T> for MagicList<T> {
+impl<T, C: NodeContainer<T>> FromIterator<T> for MagicList<T, C> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut list = MagicList::default();
         for x in iter {
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test() {
         let list: MagicList<_> = (0..100).collect();
-        let mut iter: Iter<_> = list.iter();
+        let mut iter: Iter<_, _> = list.iter();
         assert_eq!(iter.next(), Some(&0));
         assert_eq!(iter.next(), Some(&1));
         assert_eq!(iter.next(), Some(&2));

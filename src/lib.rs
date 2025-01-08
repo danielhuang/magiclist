@@ -1,35 +1,54 @@
+use container::NodeContainer;
 use node::{Node, Tree};
+use nodercvec::NodeRcVec;
+use nodevec::NodeVec;
 use std::{
     fmt::Debug,
+    marker::PhantomData,
     mem::take,
     ops::{Index, IndexMut},
 };
 
 pub(crate) const B: usize = 12;
 
+mod container;
 mod iter;
 mod node;
+mod nodercvec;
+mod nodevec;
 
 #[derive(Clone)]
-pub struct MagicList<T> {
-    root: Node<T>,
+pub struct MagicList<T, C: NodeContainer<T> = NodeVec<T>> {
+    root: Node<T, C>,
 }
 
-impl<T: Debug> Debug for MagicList<T> {
+impl<T: Debug, C: NodeContainer<T> + Debug> Debug for MagicList<T, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
 
-impl<T> Default for MagicList<T> {
+impl<T, C: NodeContainer<T>> Default for MagicList<T, C> {
     fn default() -> Self {
         Self {
-            root: Node::Leaf(vec![]),
+            root: Node::Leaf(Default::default()),
         }
     }
 }
 
-impl<T> MagicList<T> {
+impl<T> MagicList<T, NodeVec<T>> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T: Clone> MagicList<T, NodeRcVec<T>> {
+    pub fn new_rc() -> Self {
+        Self::default()
+    }
+}
+
+impl<T, C: NodeContainer<T>> MagicList<T, C> {
     pub fn extend(&mut self, other: Self) {
         self.root.extend(other.root);
         if self.root.is_overfull() {
@@ -38,7 +57,8 @@ impl<T> MagicList<T> {
             let left = take(&mut self.root);
             self.root = Node::Tree(Tree {
                 total_len: len,
-                children: vec![left, right],
+                children: [left, right].into_iter().collect(),
+                _phantom: PhantomData,
             })
         }
     }
@@ -110,7 +130,7 @@ impl<T> MagicList<T> {
     }
 }
 
-impl<T> Index<usize> for MagicList<T> {
+impl<T, C: NodeContainer<T>> Index<usize> for MagicList<T, C> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -135,7 +155,7 @@ impl<T> Index<usize> for MagicList<T> {
     }
 }
 
-impl<T> IndexMut<usize> for MagicList<T> {
+impl<T, C: NodeContainer<T>> IndexMut<usize> for MagicList<T, C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         assert!(index < self.len(), "out of bounds");
         let mut i = index;
@@ -158,21 +178,21 @@ impl<T> IndexMut<usize> for MagicList<T> {
     }
 }
 
-impl<T: Eq> Eq for MagicList<T> {}
+impl<T: Eq, C: NodeContainer<T>> Eq for MagicList<T, C> {}
 
-impl<T: PartialEq> PartialEq for MagicList<T> {
+impl<T: PartialEq, C: NodeContainer<T>> PartialEq for MagicList<T, C> {
     fn eq(&self, other: &Self) -> bool {
         self.iter().eq(other.iter())
     }
 }
 
-impl<T: PartialOrd> PartialOrd for MagicList<T> {
+impl<T: PartialOrd, C: NodeContainer<T>> PartialOrd for MagicList<T, C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.iter().partial_cmp(other.iter())
     }
 }
 
-impl<T: Ord> Ord for MagicList<T> {
+impl<T: Ord, C: NodeContainer<T>> Ord for MagicList<T, C> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.iter().cmp(other.iter())
     }
@@ -189,7 +209,7 @@ mod tests {
     #[test]
     fn push_back() {
         for size in 0..200 {
-            let mut list = MagicList::default();
+            let mut list = MagicList::new();
             let v: Vec<_> = (0..size).collect();
             for &n in &v {
                 list.push(n);
@@ -202,7 +222,7 @@ mod tests {
     #[test]
     fn push_front() {
         for size in 0..200 {
-            let mut list = MagicList::default();
+            let mut list = MagicList::new();
             let v: Vec<_> = (0..size).collect();
             for &n in &v {
                 list.insert(0, n);
@@ -215,7 +235,7 @@ mod tests {
     #[test]
     fn remove_and_insert() {
         for size in 0..200 {
-            let mut list = MagicList::default();
+            let mut list = MagicList::new();
             let v: Vec<_> = (0..size).collect();
             for &n in &v {
                 list.insert(0, n);
@@ -232,7 +252,7 @@ mod tests {
     #[test]
     fn split_and_merge() {
         for size in 0..200 {
-            let mut list = MagicList::default();
+            let mut list = MagicList::new();
             for n in 0..size {
                 list.push(n);
             }
@@ -251,7 +271,7 @@ mod tests {
             let mut rng = ChaChaRng::seed_from_u64(size);
             v.shuffle(&mut rng);
 
-            let mut list = MagicList::default();
+            let mut list = MagicList::new();
             for x in v {
                 if list.is_empty() {
                     list.push(x);

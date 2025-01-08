@@ -1,23 +1,28 @@
-use std::mem::{replace, take};
+use std::{
+    marker::PhantomData,
+    mem::{replace, take},
+};
 
-use crate::B;
+use crate::{container::NodeContainer, B};
 
 #[derive(Debug, Clone)]
-pub(crate) struct Tree<T> {
+pub struct Tree<T, C: NodeContainer<T>> {
     pub(crate) total_len: usize,
-    pub(crate) children: Vec<Node<T>>,
+    pub(crate) children: C,
+    pub(crate) _phantom: PhantomData<T>,
 }
 
-impl<T> Default for Tree<T> {
+impl<T, C: NodeContainer<T>> Default for Tree<T, C> {
     fn default() -> Self {
         Self {
             total_len: 0,
-            children: vec![],
+            children: Default::default(),
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<T> Tree<T> {
+impl<T, C: NodeContainer<T>> Tree<T, C> {
     fn extend(&mut self, other: Self) {
         self.total_len += other.total_len;
         self.children.extend(other.children);
@@ -45,18 +50,18 @@ impl<T> Tree<T> {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Node<T> {
+pub enum Node<T, C: NodeContainer<T>> {
     Leaf(Vec<T>),
-    Tree(Tree<T>),
+    Tree(Tree<T, C>),
 }
 
-impl<T> Default for Node<T> {
+impl<T, C: NodeContainer<T>> Default for Node<T, C> {
     fn default() -> Self {
-        Self::Leaf(vec![])
+        Self::Leaf(Default::default())
     }
 }
 
-impl<T> Node<T> {
+impl<T, C: NodeContainer<T>> Node<T, C> {
     pub(crate) fn len(&self) -> usize {
         match self {
             Node::Leaf(x) => x.len(),
@@ -71,7 +76,7 @@ impl<T> Node<T> {
         }
     }
 
-    pub(crate) fn split_off_half(&mut self) -> Node<T> {
+    pub(crate) fn split_off_half(&mut self) -> Node<T, C> {
         match self {
             Node::Leaf(x) => {
                 let i = x.len() / 2;
@@ -80,6 +85,7 @@ impl<T> Node<T> {
             Node::Tree(Tree {
                 total_len,
                 children,
+                ..
             }) => {
                 let i = children.len() / 2;
                 let right = children.split_off(i);
@@ -88,6 +94,7 @@ impl<T> Node<T> {
                 Node::Tree(Tree {
                     total_len: right_len,
                     children: right,
+                    _phantom: PhantomData,
                 })
             }
         }
@@ -98,7 +105,7 @@ impl<T> Node<T> {
             Node::Leaf(x) => Node::Leaf(x),
             Node::Tree(mut x) => {
                 if x.children.is_empty() {
-                    Node::Leaf(vec![])
+                    Node::Leaf(Default::default())
                 } else if x.children.len() == 1 {
                     x.children.pop().unwrap().canon()
                 } else {
@@ -116,7 +123,7 @@ impl<T> Node<T> {
         self.children_count() < B
     }
 
-    fn extend_equal_level(&mut self, other: Node<T>) {
+    fn extend_equal_level(&mut self, other: Node<T, C>) {
         if other.len() == 0 {
             return;
         }
@@ -127,7 +134,7 @@ impl<T> Node<T> {
         }
     }
 
-    fn prepend_equal_level(&mut self, other: Node<T>) {
+    fn prepend_equal_level(&mut self, other: Node<T, C>) {
         if other.len() == 0 {
             return;
         }
@@ -137,7 +144,7 @@ impl<T> Node<T> {
             }
             (Node::Tree(a), Node::Tree(b)) => {
                 a.total_len += b.total_len;
-                a.children.splice(0..0, b.children);
+                a.children.prepend_many(b.children);
             }
             _ => unreachable!("must be same type"),
         }
@@ -150,15 +157,15 @@ impl<T> Node<T> {
         }
     }
 
-    pub(crate) fn split_off(&mut self, i: usize) -> Node<T> {
+    pub(crate) fn split_off(&mut self, i: usize) -> Node<T, C> {
         match self {
             Node::Leaf(x) => Node::Leaf(x.split_off(i)),
             Node::Tree(tree) => {
                 if i == 0 {
-                    return replace(self, Node::Leaf(vec![]));
+                    return replace(self, Node::Leaf(Default::default()));
                 }
                 if i == tree.total_len {
-                    return Node::Leaf(vec![]);
+                    return Node::Leaf(Default::default());
                 }
                 let orig_len = tree.total_len;
                 let mut child_i = 0;
@@ -187,6 +194,7 @@ impl<T> Node<T> {
                 let right = Tree {
                     children: right,
                     total_len: orig_len - i,
+                    _phantom: PhantomData,
                 };
                 let mut right = Node::Tree(right);
                 right.cleanup(0);
@@ -288,13 +296,14 @@ impl<T> Node<T> {
 
     fn pop_child_left(&mut self) -> Self {
         match self {
-            Node::Leaf(x) => Node::Leaf(vec![x.remove(0)]),
+            Node::Leaf(x) => Node::Leaf([x.remove(0)].into_iter().collect()),
             Node::Tree(x) => {
                 let left = x.children.remove(0);
                 x.total_len -= left.len();
                 Node::Tree(Tree {
                     total_len: left.len(),
-                    children: vec![left],
+                    children: [left].into_iter().collect(),
+                    _phantom: PhantomData,
                 })
             }
         }
@@ -302,13 +311,14 @@ impl<T> Node<T> {
 
     fn pop_child_right(&mut self) -> Self {
         match self {
-            Node::Leaf(x) => Node::Leaf(vec![x.pop().unwrap()]),
+            Node::Leaf(x) => Node::Leaf([x.pop().unwrap()].into_iter().collect()),
             Node::Tree(x) => {
                 let right = x.children.pop().unwrap();
                 x.total_len -= right.len();
                 Node::Tree(Tree {
                     total_len: right.len(),
-                    children: vec![right],
+                    children: [right].into_iter().collect(),
+                    _phantom: PhantomData,
                 })
             }
         }
