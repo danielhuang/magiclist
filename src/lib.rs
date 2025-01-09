@@ -11,11 +11,11 @@ use std::{
 
 pub(crate) const B: usize = 12;
 
-mod container;
-mod iter;
-mod node;
-mod nodercvec;
-mod nodevec;
+pub mod container;
+pub mod iter;
+pub mod node;
+pub mod nodercvec;
+pub mod nodevec;
 
 #[derive(Clone)]
 pub struct MagicList<T, C: NodeContainer<T> = NodeVec<T>> {

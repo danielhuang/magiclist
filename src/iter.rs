@@ -114,20 +114,53 @@ impl<'a, T, C: NodeContainer<T>> Iterator for Iter<'a, T, C> {
     where
         F: FnMut(B, &'a T) -> B,
     {
-        fn fold_ref<'a, T, C: NodeContainer<T>, B, F>(node: &'a Node<T, C>, init: B, f: &mut F) -> B
+        fn fold_ref<'a, T, C: NodeContainer<T>, B, F>(
+            node: &'a Node<T, C>,
+            start: usize,
+            end: usize,
+            mut pos: usize,
+            init: B,
+            f: &mut F,
+        ) -> (B, usize)
         where
             F: FnMut(B, &'a T) -> B,
         {
             match node {
-                Node::Leaf(values) => values.iter().fold(init, f),
-                Node::Tree(tree) => tree
-                    .children
-                    .iter()
-                    .fold(init, |acc, node| fold_ref(node, acc, f)),
+                Node::Leaf(values) => {
+                    let mut acc = init;
+                    for value in values.iter() {
+                        if pos >= end {
+                            break;
+                        }
+                        if pos >= start {
+                            acc = f(acc, value);
+                        }
+                        pos += 1;
+                    }
+                    (acc, pos)
+                }
+                Node::Tree(tree) => {
+                    let mut acc = init;
+                    for child in tree.children.iter() {
+                        if pos >= end {
+                            break;
+                        }
+                        let child_len = child.len();
+                        if pos + child_len > start {
+                            let (new_acc, new_pos) = fold_ref(child, start, end, pos, acc, f);
+                            acc = new_acc;
+                            pos = new_pos;
+                        } else {
+                            pos += child_len;
+                        }
+                    }
+                    (acc, pos)
+                }
             }
         }
 
-        fold_ref(&self.list.root, init, &mut f)
+        let (result, _) = fold_ref(&self.list.root, self.i, self.j, 0, init, &mut f);
+        result
     }
 }
 
@@ -181,5 +214,23 @@ mod tests {
         let list: MagicList<_> = (0..100).collect();
         let list2: MagicList<_> = list.clone().into_iter().collect();
         assert_eq!(list, list2);
+    }
+
+    #[test]
+    fn test3() {
+        let list: MagicList<_> = (0..100).collect();
+        for i in 0..100 {
+            for j in i..100 {
+                let mut iter = list.iter();
+                for _ in 0..i {
+                    iter.next();
+                }
+                for _ in 0..(100 - j) {
+                    iter.next_back();
+                }
+                let list2: MagicList<_> = iter.copied().collect();
+                assert_eq!(list2, (i..j).collect());
+            }
+        }
     }
 }
