@@ -22,6 +22,8 @@ pub struct MagicList<T, C: NodeContainer<T> = NodeVec<T>> {
     root: Node<T, C>,
 }
 
+pub type RcMagicList<T> = MagicList<T, NodeRcVec<T>>;
+
 impl<T: Debug, C: NodeContainer<T> + Debug> Debug for MagicList<T, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
