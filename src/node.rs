@@ -3,16 +3,16 @@ use std::{
     mem::{replace, take},
 };
 
-use crate::{container::NodeContainer, B};
+use crate::container::NodeContainer;
 
 #[derive(Debug, Clone)]
-pub struct Tree<T, C: NodeContainer<T>> {
+pub struct Tree<T, const B: usize, C: NodeContainer<T, B>> {
     pub(crate) total_len: usize,
     pub(crate) children: C,
     pub(crate) _phantom: PhantomData<T>,
 }
 
-impl<T, C: NodeContainer<T>> Default for Tree<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> Default for Tree<T, B, C> {
     fn default() -> Self {
         Self {
             total_len: 0,
@@ -22,7 +22,7 @@ impl<T, C: NodeContainer<T>> Default for Tree<T, C> {
     }
 }
 
-impl<T, C: NodeContainer<T>> Tree<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> Tree<T, B, C> {
     fn extend(&mut self, other: Self) {
         self.total_len += other.total_len;
         self.children.extend(other.children);
@@ -50,18 +50,18 @@ impl<T, C: NodeContainer<T>> Tree<T, C> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Node<T, C: NodeContainer<T>> {
+pub enum Node<T, const B: usize, C: NodeContainer<T, B>> {
     Leaf(Vec<T>),
-    Tree(Tree<T, C>),
+    Tree(Tree<T, B, C>),
 }
 
-impl<T, C: NodeContainer<T>> Default for Node<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> Default for Node<T, B, C> {
     fn default() -> Self {
         Self::Leaf(Default::default())
     }
 }
 
-impl<T, C: NodeContainer<T>> Node<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> Node<T, B, C> {
     pub(crate) fn len(&self) -> usize {
         match self {
             Node::Leaf(x) => x.len(),
@@ -76,7 +76,7 @@ impl<T, C: NodeContainer<T>> Node<T, C> {
         }
     }
 
-    pub(crate) fn split_off_half(&mut self) -> Node<T, C> {
+    pub(crate) fn split_off_half(&mut self) -> Node<T, B, C> {
         match self {
             Node::Leaf(x) => {
                 let i = x.len() / 2;
@@ -123,7 +123,7 @@ impl<T, C: NodeContainer<T>> Node<T, C> {
         self.children_count() < B
     }
 
-    fn extend_equal_level(&mut self, other: Node<T, C>) {
+    fn extend_equal_level(&mut self, other: Node<T, B, C>) {
         if other.len() == 0 {
             return;
         }
@@ -134,7 +134,7 @@ impl<T, C: NodeContainer<T>> Node<T, C> {
         }
     }
 
-    fn prepend_equal_level(&mut self, other: Node<T, C>) {
+    fn prepend_equal_level(&mut self, other: Node<T, B, C>) {
         if other.len() == 0 {
             return;
         }
@@ -157,7 +157,7 @@ impl<T, C: NodeContainer<T>> Node<T, C> {
         }
     }
 
-    pub(crate) fn split_off(&mut self, i: usize) -> Node<T, C> {
+    pub(crate) fn split_off(&mut self, i: usize) -> Node<T, B, C> {
         match self {
             Node::Leaf(x) => Node::Leaf(x.split_off(i)),
             Node::Tree(tree) => {

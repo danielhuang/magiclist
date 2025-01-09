@@ -9,28 +9,28 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-pub(crate) const B: usize = 12;
-
 pub mod container;
 pub mod iter;
 pub mod node;
 pub mod nodercvec;
 pub mod nodevec;
 
+pub(crate) const DEFAULT_B: usize = 12;
+
 #[derive(Clone)]
-pub struct MagicList<T, C: NodeContainer<T> = NodeVec<T>> {
-    root: Node<T, C>,
+pub struct MagicList<T, const B: usize = DEFAULT_B, C: NodeContainer<T, B> = NodeVec<T, B>> {
+    root: Node<T, B, C>,
 }
 
-pub type RcMagicList<T> = MagicList<T, NodeRcVec<T>>;
+pub type RcMagicList<T, const B: usize = DEFAULT_B> = MagicList<T, B, NodeRcVec<T, B>>;
 
-impl<T: Debug, C: NodeContainer<T> + Debug> Debug for MagicList<T, C> {
+impl<T: Debug, C: NodeContainer<T, B> + Debug, const B: usize> Debug for MagicList<T, B, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
 
-impl<T, C: NodeContainer<T>> Default for MagicList<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> Default for MagicList<T, B, C> {
     fn default() -> Self {
         Self {
             root: Node::Leaf(Default::default()),
@@ -38,19 +38,19 @@ impl<T, C: NodeContainer<T>> Default for MagicList<T, C> {
     }
 }
 
-impl<T> MagicList<T, NodeVec<T>> {
+impl<T> MagicList<T, DEFAULT_B, NodeVec<T, DEFAULT_B>> {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<T: Clone> MagicList<T, NodeRcVec<T>> {
+impl<T: Clone> MagicList<T, DEFAULT_B, NodeRcVec<T, DEFAULT_B>> {
     pub fn new_rc() -> Self {
         Self::default()
     }
 }
 
-impl<T, C: NodeContainer<T>> MagicList<T, C> {
+impl<T, const B: usize, C: NodeContainer<T, B>> MagicList<T, B, C> {
     pub fn extend(&mut self, other: Self) {
         self.root.extend(other.root);
         if self.root.is_overfull() {
@@ -132,7 +132,7 @@ impl<T, C: NodeContainer<T>> MagicList<T, C> {
     }
 }
 
-impl<T, C: NodeContainer<T>> Index<usize> for MagicList<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> Index<usize> for MagicList<T, B, C> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -157,7 +157,7 @@ impl<T, C: NodeContainer<T>> Index<usize> for MagicList<T, C> {
     }
 }
 
-impl<T, C: NodeContainer<T>> IndexMut<usize> for MagicList<T, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> IndexMut<usize> for MagicList<T, B, C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         assert!(index < self.len(), "out of bounds");
         let mut i = index;
@@ -180,21 +180,21 @@ impl<T, C: NodeContainer<T>> IndexMut<usize> for MagicList<T, C> {
     }
 }
 
-impl<T: Eq, C: NodeContainer<T>> Eq for MagicList<T, C> {}
+impl<T: Eq, C: NodeContainer<T, B>, const B: usize> Eq for MagicList<T, B, C> {}
 
-impl<T: PartialEq, C: NodeContainer<T>> PartialEq for MagicList<T, C> {
+impl<T: PartialEq, C: NodeContainer<T, B>, const B: usize> PartialEq for MagicList<T, B, C> {
     fn eq(&self, other: &Self) -> bool {
         self.iter().eq(other.iter())
     }
 }
 
-impl<T: PartialOrd, C: NodeContainer<T>> PartialOrd for MagicList<T, C> {
+impl<T: PartialOrd, C: NodeContainer<T, B>, const B: usize> PartialOrd for MagicList<T, B, C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.iter().partial_cmp(other.iter())
     }
 }
 
-impl<T: Ord, C: NodeContainer<T>> Ord for MagicList<T, C> {
+impl<T: Ord, C: NodeContainer<T, B>, const B: usize> Ord for MagicList<T, B, C> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.iter().cmp(other.iter())
     }

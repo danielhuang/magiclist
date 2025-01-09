@@ -5,26 +5,26 @@ use std::{
 };
 
 #[derive(Clone, Debug)]
-pub struct NodeRcVec<T: Clone>(Rc<Vec<Node<T, Self>>>);
+pub struct NodeRcVec<T: Clone, const B: usize>(Rc<Vec<Node<T, B, Self>>>);
 
-impl<T: Clone> NodeContainer<T> for NodeRcVec<T> {
+impl<T: Clone, const B: usize> NodeContainer<T, B> for NodeRcVec<T, B> {
     fn len(&self) -> usize {
         self.0.len()
     }
 
-    fn push(&mut self, value: Node<T, Self>) {
+    fn push(&mut self, value: Node<T, B, Self>) {
         Rc::make_mut(&mut self.0).push(value)
     }
 
-    fn pop(&mut self) -> Option<Node<T, Self>> {
+    fn pop(&mut self) -> Option<Node<T, B, Self>> {
         Rc::make_mut(&mut self.0).pop()
     }
 
-    fn remove(&mut self, index: usize) -> Node<T, Self> {
+    fn remove(&mut self, index: usize) -> Node<T, B, Self> {
         Rc::make_mut(&mut self.0).remove(index)
     }
 
-    fn insert(&mut self, index: usize, value: Node<T, Self>) {
+    fn insert(&mut self, index: usize, value: Node<T, B, Self>) {
         Rc::make_mut(&mut self.0).insert(index, value)
     }
 
@@ -46,42 +46,42 @@ impl<T: Clone> NodeContainer<T> for NodeRcVec<T> {
         self.0 = Rc::new(new_vec);
     }
 
-    fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Node<T, Self>> + 'a
+    fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Node<T, B, Self>> + 'a
     where
         T: 'a,
     {
         self.0.iter()
     }
 
-    fn first_mut(&mut self) -> Option<&mut Node<T, Self>> {
+    fn first_mut(&mut self) -> Option<&mut Node<T, B, Self>> {
         Rc::make_mut(&mut self.0).first_mut()
     }
 
-    fn last_mut(&mut self) -> Option<&mut Node<T, Self>> {
+    fn last_mut(&mut self) -> Option<&mut Node<T, B, Self>> {
         Rc::make_mut(&mut self.0).last_mut()
     }
 }
 
-impl<T: Clone> Default for NodeRcVec<T> {
+impl<T: Clone, const B: usize> Default for NodeRcVec<T, B> {
     fn default() -> Self {
         Self(Rc::new(Vec::new()))
     }
 }
 
-impl<T: Clone> Extend<Node<T, NodeRcVec<T>>> for NodeRcVec<T> {
-    fn extend<I: IntoIterator<Item = Node<T, Self>>>(&mut self, iter: I) {
+impl<T: Clone, const B: usize> Extend<Node<T, B, Self>> for NodeRcVec<T, B> {
+    fn extend<I: IntoIterator<Item = Node<T, B, Self>>>(&mut self, iter: I) {
         Rc::make_mut(&mut self.0).extend(iter)
     }
 }
 
-impl<T: Clone> FromIterator<Node<T, NodeRcVec<T>>> for NodeRcVec<T> {
-    fn from_iter<I: IntoIterator<Item = Node<T, Self>>>(iter: I) -> Self {
+impl<T: Clone, const B: usize> FromIterator<Node<T, B, Self>> for NodeRcVec<T, B> {
+    fn from_iter<I: IntoIterator<Item = Node<T, B, Self>>>(iter: I) -> Self {
         Self(Rc::new(Vec::from_iter(iter)))
     }
 }
 
-impl<T: Clone> IntoIterator for NodeRcVec<T> {
-    type Item = Node<T, Self>;
+impl<T: Clone, const B: usize> IntoIterator for NodeRcVec<T, B> {
+    type Item = Node<T, B, Self>;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -92,15 +92,15 @@ impl<T: Clone> IntoIterator for NodeRcVec<T> {
     }
 }
 
-impl<T: Clone> Index<usize> for NodeRcVec<T> {
-    type Output = Node<T, Self>;
+impl<T: Clone, const B: usize> Index<usize> for NodeRcVec<T, B> {
+    type Output = Node<T, B, Self>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
     }
 }
 
-impl<T: Clone> IndexMut<usize> for NodeRcVec<T> {
+impl<T: Clone, const B: usize> IndexMut<usize> for NodeRcVec<T, B> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut Rc::make_mut(&mut self.0)[index]
     }
@@ -128,7 +128,7 @@ mod tests {
     fn lazy() {
         let tracker = Rc::new(RefCell::new(0));
 
-        let list: MagicList<_, NodeRcVec<_>> = (0..10000)
+        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..10000)
             .map(|x| CloneTracker(x, tracker.clone()))
             .collect();
 
@@ -146,10 +146,10 @@ mod tests {
 
     #[test]
     fn blowup() {
-        let list: MagicList<_, NodeRcVec<_>> = (0..9999).collect();
-        let list: MagicList<_, NodeRcVec<_>> = (0..9999).map(|_| list.clone()).collect();
-        let list: MagicList<_, NodeRcVec<_>> = (0..9999).map(|_| list.clone()).collect();
-        let list: MagicList<_, NodeRcVec<_>> = (0..9999).map(|_| list.clone()).collect();
+        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).collect();
+        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).map(|_| list.clone()).collect();
+        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).map(|_| list.clone()).collect();
+        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).map(|_| list.clone()).collect();
         assert!(!list.is_empty());
     }
 }
