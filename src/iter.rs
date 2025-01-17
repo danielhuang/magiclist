@@ -168,7 +168,7 @@ impl<'a, T, C: NodeContainer<T, B>, const B: usize> Iterator for Iter<'a, T, B, 
     }
 }
 
-impl<'a, T, C: NodeContainer<T, B>, const B: usize> DoubleEndedIterator for Iter<'a, T, B, C> {
+impl<T, C: NodeContainer<T, B>, const B: usize> DoubleEndedIterator for Iter<'_, T, B, C> {
     fn next_back(&mut self) -> Option<Self::Item> {
         assert!(self.i <= self.j);
         if self.i == self.j {
@@ -181,9 +181,9 @@ impl<'a, T, C: NodeContainer<T, B>, const B: usize> DoubleEndedIterator for Iter
     }
 }
 
-impl<'a, T, C: NodeContainer<T, B>, const B: usize> FusedIterator for Iter<'a, T, B, C> {}
+impl<T, C: NodeContainer<T, B>, const B: usize> FusedIterator for Iter<'_, T, B, C> {}
 
-impl<'a, T, C: NodeContainer<T, B>, const B: usize> ExactSizeIterator for Iter<'a, T, B, C> {}
+impl<T, C: NodeContainer<T, B>, const B: usize> ExactSizeIterator for Iter<'_, T, B, C> {}
 
 impl<T, C: NodeContainer<T, B>, const B: usize> FromIterator<T> for MagicList<T, B, C> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
