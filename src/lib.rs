@@ -15,7 +15,7 @@ pub mod node;
 pub mod nodercvec;
 pub mod nodevec;
 
-pub(crate) const DEFAULT_B: usize = 12;
+const DEFAULT_B: usize = 12;
 
 #[derive(Clone)]
 pub struct MagicList<T, const B: usize = DEFAULT_B, C: NodeContainer<T, B> = NodeVec<T, B>> {

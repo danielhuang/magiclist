@@ -111,7 +111,7 @@ mod tests {
 
     use std::cell::RefCell;
 
-    use crate::MagicList;
+    use crate::RcMagicList;
 
     use super::*;
 
@@ -128,7 +128,7 @@ mod tests {
     fn lazy() {
         let tracker = Rc::new(RefCell::new(0));
 
-        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..10000)
+        let list: RcMagicList<_> = (0..10000)
             .map(|x| CloneTracker(x, tracker.clone()))
             .collect();
 
@@ -146,10 +146,10 @@ mod tests {
 
     #[test]
     fn blowup() {
-        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).collect();
-        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).map(|_| list.clone()).collect();
-        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).map(|_| list.clone()).collect();
-        let list: MagicList<_, 12, NodeRcVec<_, 12>> = (0..9999).map(|_| list.clone()).collect();
+        let list: RcMagicList<_> = (0..9999).collect();
+        let list: RcMagicList<_> = (0..9999).map(|_| list.clone()).collect();
+        let list: RcMagicList<_> = (0..9999).map(|_| list.clone()).collect();
+        let list: RcMagicList<_> = (0..9999).map(|_| list.clone()).collect();
         assert!(!list.is_empty());
     }
 }
